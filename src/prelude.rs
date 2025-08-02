@@ -54,3 +54,59 @@ pub mod model {
 }
 #[cfg(feature = "testing")]
 pub use crate::testing::prelude::*;
+
+pub use macros::*;
+mod macros {
+
+    // The "magical" macro to generate the `From` implementation.
+    // Place this at the top of your models file.
+    #[macro_export]
+    macro_rules! auto_map_to_active_model {
+        ($from:ident, $to:ident, { $($field:ident),* }) => {
+            impl From<$from> for $to {
+                fn from(params: $from) -> Self {
+                    Self {
+                        $(
+                            $field: sea_orm::ActiveValue::Set(params.$field),
+                        )*
+                        ..Default::default()
+                    }
+                }
+            }
+        };
+    }
+    /// Maps fields from a sea_orm::Model to a custom struct.
+    ///
+    /// # Arguments
+    ///
+    /// * `$from`: The source `model::Model` struct.
+    /// * `$to`: The destination struct.
+    /// * `{ $($field:ident),* }`: A comma-separated list of fields to map.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // Assuming `user::Model` is a SeaORM model and `UserResponse` is your custom struct.
+    /// auto_map_from_model!(user::Model, UserResponse, { id, username, email });
+    ///
+    /// // Now you can convert a model instance into your response struct:
+    /// // let user_model: user::Model = ...;
+    /// // let user_response: UserResponse = user_model.into();
+    /// ```
+    ///
+    #[macro_export]
+    macro_rules! auto_map_from_model {
+        ($from:ident, $to:ident, { $($field:ident),* }) => {
+            impl From<$from> for $to {
+                fn from(model: $from) -> Self {
+                    Self {
+                        $(
+                            $field: model.$field,
+                        )*
+                        ..Default::default()
+                    }
+                }
+            }
+        };
+    }
+}
