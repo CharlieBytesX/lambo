@@ -64,7 +64,7 @@ pub struct ModelValidationMessage {
 /// in the trait, we MUST use `DbErr`, so we need to "hide" a _representation_
 /// of the error in `DbErr::Custom`, so that it can be unpacked later down the
 /// stream, in the central error response handler.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Serialize)]
 #[error("Model validation failed: {0}")]
 pub struct ModelValidationErrors(ValidationErrors);
 

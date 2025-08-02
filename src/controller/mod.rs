@@ -232,6 +232,50 @@ impl IntoResponse for Error {
                 tracing::debug!(err = err.body_text(), "json rejection");
                 (err.status(), ErrorDetail::with_reason("Bad Request"))
             }
+            Self::Model(error) => match error {
+                // crate::model::ModelError::EntityAlreadyExists => todo!(),
+                // crate::model::ModelError::EntityNotFound => todo!(),
+                // crate::model::ModelError::Validation(model_validation_errors) => todo!(),
+                // crate::model::ModelError::Jwt(error) => todo!(),
+                // crate::model::ModelError::DbErr(db_err) => todo!(),
+                // crate::model::ModelError::Any(error) => todo!(),
+                // crate::model::ModelError::Message(_) => todo!(),
+                crate::model::ModelError::Validation(ref errors) => serde_json::to_value(errors)
+                    .map_or_else(
+                        |_| {
+                            (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                ErrorDetail::new("internal_server_error", "Internal Server Error"),
+                            )
+                        },
+                        |errors| {
+                            (
+                                StatusCode::BAD_REQUEST,
+                                ErrorDetail {
+                                    error: None,
+                                    description: None,
+                                    errors: Some(errors),
+                                },
+                            )
+                        },
+                    ),
+                crate::model::ModelError::EntityNotFound => (
+                    StatusCode::NOT_FOUND,
+                    ErrorDetail::new("not_found", "Resource was not found"),
+                ),
+                // Add other `ModelError` variants here
+                // e.g., `EntityAlreadyExists`, which could return a 409 Conflict.
+                crate::model::ModelError::EntityAlreadyExists => (
+                    StatusCode::CONFLICT,
+                    ErrorDetail::new("conflict", "Entity with this identifier already exists"),
+                ),
+
+                // Fallback for any `ModelError` variants you don't handle explicitly.
+                _ => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    ErrorDetail::new("internal_server_error", "Internal Server Error"),
+                ),
+            },
 
             Self::ValidationError(ref errors) => serde_json::to_value(errors).map_or_else(
                 |_| {
